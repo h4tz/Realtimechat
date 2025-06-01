@@ -1,0 +1,30 @@
+<div id="chat-log"></div>
+<input type="text" id="chat-message-input">
+<button onclick="sendMessage()">send</button>
+
+<script>
+    const roomName = ''
+    const username = prompt('enter your name');
+    const chatSocket = new WebSocket(`ws://${window.location.host}/ws/chat/${roomName}/?username=${username}`);
+
+
+    chatSocket.onmessage = function(e){
+        const data = JSON.parse(e.data);
+        const messageContainer = document.getElementById('chat-log');
+        const msgElement = document.createElement('p');
+        msgElement.textContent = data.message ;
+        messageContainer.appendChild(msgElement);
+    }
+
+
+    function sendMessage(){
+        const input = document.getElementById('chat-message-input');
+        const message = input.value
+        if (message.trim()){
+            chatSocket.send(JSON.stringify({message:message}));
+            input.value = '';
+        }
+    }
+
+
+</script>

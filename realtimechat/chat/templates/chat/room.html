@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Chat Room</title>
+</head>
+<body>
+    <h1>Room: {{ room_name }}</h1>
+    <div id="chat-log">
+        {% for message in messages %}
+            <li>{{ message.user.username }} : {{ message.content }}</li> {% endfor %}
+    </div> <div id="typing-indicator"></div> <input type="text" id="chat-message-input">
+    <button id="chat-message-submit">Send</button> <input type="hidden" id="room-name" value="{{ room_name }}">
+
+    {% load static %}
+    <script src="{% static 'chat/chat.js' %}"></script>
+</body>
+</html>
