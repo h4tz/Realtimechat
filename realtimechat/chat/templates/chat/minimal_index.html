@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal Chat - Join Room</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+        
+        .input-group {
+            margin-bottom: 1rem;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+        
+        input[type="text"]:focus {
+            border-color: #3498db;
+        }
+        
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        .rooms {
+            margin-top: 2rem;
+            text-align: left;
+        }
+        
+        .room-item {
+            background-color: #f8f9fa;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .room-item:hover {
+            background-color: #e9ecef;
+        }
+        
+        .room-name {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .room-count {
+            background-color: #3498db;
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+        
+        .error {
+            color: #e74c3c;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .success {
+            color: #27ae60;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Minimal Chat</h1>
+        
+        <div class="input-group">
+            <input type="text" id="room-input" placeholder="Enter room name..." autocomplete="off">
+        </div>
+        
+        <button id="join-room">Join Room</button>
+        
+        <div class="error" id="error-message"></div>
+        <div class="success" id="success-message"></div>
+        
+        <div class="rooms">
+            <h3 style="color: #2c3e50; margin-bottom: 1rem; font-weight: 400;">Popular Rooms</h3>
+            <div class="room-item" onclick="joinRoom('general')">
+                <span class="room-name">general</span>
+                <span class="room-count">12</span>
+            </div>
+            <div class="room-item" onclick="joinRoom('random')">
+                <span class="room-name">random</span>
+                <span class="room-count">8</span>
+            </div>
+            <div class="room-item" onclick="joinRoom('games')">
+                <span class="room-name">games</span>
+                <span class="room-count">15</span>
+            </div>
+            <div class="room-item" onclick="joinRoom('tech')">
+                <span class="room-name">tech</span>
+                <span class="room-count">6</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const roomInput = document.getElementById('room-input');
+        const joinButton = document.getElementById('join-room');
+        const errorMessage = document.getElementById('error-message');
+        const successMessage = document.getElementById('success-message');
+        
+        function joinRoom(roomName = null) {
+            const room = roomName || roomInput.value.trim();
+            
+            if (!room) {
+                errorMessage.textContent = 'Please enter a room name';
+                successMessage.textContent = '';
+                return;
+            }
+            
+            // Validate room name (alphanumeric, underscore, hyphen only)
+            if (!/^[a-zA-Z0-9_-]+$/.test(room)) {
+                errorMessage.textContent = 'Room name can only contain letters, numbers, underscores, and hyphens';
+                successMessage.textContent = '';
+                return;
+            }
+            
+            errorMessage.textContent = '';
+            successMessage.textContent = '';
+            
+            // Redirect to the room
+            window.location.href = `/room/${room}/`;
+        }
+        
+        joinButton.addEventListener('click', () => joinRoom());
+        
+        roomInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                joinRoom();
+            }
+        });
+        
+        // Clear error message when user starts typing
+        roomInput.addEventListener('input', function() {
+            errorMessage.textContent = '';
+            successMessage.textContent = '';
+        });
+    </script>
+</body>
+</html>
