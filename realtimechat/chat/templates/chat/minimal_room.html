@@ -10,7 +10,7 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f5f5f5;
@@ -18,7 +18,7 @@
             display: flex;
             flex-direction: column;
         }
-        
+
         .header {
             background-color: #2c3e50;
             color: white;
@@ -27,14 +27,14 @@
             font-weight: 300;
             letter-spacing: 1px;
         }
-        
+
         .chat-container {
             flex: 1;
             overflow-y: auto;
             padding: 1rem;
             max-height: calc(100vh - 120px);
         }
-        
+
         .message {
             margin-bottom: 0.75rem;
             padding: 0.5rem 1rem;
@@ -43,33 +43,33 @@
             word-wrap: break-word;
             animation: fadeIn 0.3s ease-in;
         }
-        
+
         .message.user {
             background-color: #3498db;
             color: white;
             margin-left: auto;
             border-bottom-right-radius: 4px;
         }
-        
+
         .message.other {
             background-color: white;
             color: #2c3e50;
             border-bottom-left-radius: 4px;
             box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
-        
+
         .message .username {
             font-weight: 600;
             font-size: 0.8rem;
             margin-bottom: 0.2rem;
             opacity: 0.8;
         }
-        
+
         .message .content {
             font-size: 0.95rem;
             line-height: 1.4;
         }
-        
+
         .typing-indicator {
             font-style: italic;
             color: #7f8c8d;
@@ -80,7 +80,7 @@
             border-radius: 12px;
             width: fit-content;
         }
-        
+
         .input-container {
             display: flex;
             padding: 1rem;
@@ -88,7 +88,7 @@
             border-top: 1px solid #e0e0e0;
             gap: 0.5rem;
         }
-        
+
         .message-input {
             flex: 1;
             padding: 0.75rem 1rem;
@@ -98,11 +98,11 @@
             outline: none;
             transition: border-color 0.3s ease;
         }
-        
+
         .message-input:focus {
             border-color: #3498db;
         }
-        
+
         .send-button {
             padding: 0.75rem 1.5rem;
             background-color: #3498db;
@@ -113,25 +113,33 @@
             font-size: 0.95rem;
             transition: background-color 0.3s ease;
         }
-        
+
         .send-button:hover {
             background-color: #2980b9;
         }
-        
+
         .send-button:disabled {
             background-color: #bdc3c7;
             cursor: not-allowed;
         }
-        
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
+
         .timestamp {
             font-size: 0.7rem;
             color: #95a5a6;
             margin-top: 0.2rem;
+        }
+
+        .system-message {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.85rem;
+            padding: 0.5rem;
+            font-style: italic;
         }
     </style>
 </head>
@@ -139,7 +147,7 @@
     <div class="header">
         <h1>Chat Room: {{ room_name }}</h1>
     </div>
-    
+
     <div class="chat-container" id="chat-log">
         {% for message in messages %}
             <div class="message {% if message.user == user %}user{% else %}other{% endif %}">
@@ -149,121 +157,134 @@
             </div>
         {% endfor %}
     </div>
-    
-    <div id="typing-indicator" style="display: none;"></div>
-    
+
+    <div id="typing-indicator" class="typing-indicator" style="display: none;"></div>
+
     <div class="input-container">
         <input type="text" id="chat-message-input" class="message-input" placeholder="Type a message..." autocomplete="off">
         <button id="chat-message-submit" class="send-button">Send</button>
     </div>
-    
+
     <input type="hidden" id="room-name" value="{{ room_name }}">
-    
+    <input type="hidden" id="ws-token" value="{{ ws_token }}">
+    <input type="hidden" id="current-username" value="{{ user.username }}">
+
     <script>
-        // Minimal Chat JavaScript
         const roomName = document.getElementById('room-name').value;
-        const chatSocket = new WebSocket('ws://' + window.location.host + '/ws/chat/' + roomName + '/');
-        
+        const wsToken = document.getElementById('ws-token').value;
+        const currentUsername = document.getElementById('current-username').value;
+
+        // Connect to FastAPI WebSocket service
+        const wsUrl = `ws://localhost:8001/ws/chat/${roomName}/?token=${wsToken}`;
+        const chatSocket = new WebSocket(wsUrl);
+
         const chatLog = document.getElementById('chat-log');
         const messageInput = document.getElementById('chat-message-input');
         const sendButton = document.getElementById('chat-message-submit');
         const typingIndicator = document.getElementById('typing-indicator');
-        
+
         let typingTimeout;
-        
-        // Scroll to bottom when new messages are added
+
         function scrollToBottom() {
             chatLog.scrollTop = chatLog.scrollHeight;
         }
-        
-        // WebSocket event handlers
+
         chatSocket.onopen = function(e) {
             console.log('WebSocket connected');
             scrollToBottom();
         };
-        
+
         chatSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
-            
-            if (data.message) {
+
+            if (data.type === 'message') {
+                const isUser = data.user === currentUsername;
                 const messageDiv = document.createElement('div');
-                messageDiv.className = 'message';
+                messageDiv.className = `message ${isUser ? 'user' : 'other'}`;
                 messageDiv.innerHTML = `
                     <div class="username">${data.user}</div>
-                    <div class="content">${data.message}</div>
-                    <div class="timestamp">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                    <div class="content">${data.content}</div>
+                    <div class="timestamp">${new Date(data.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                 `;
                 chatLog.appendChild(messageDiv);
                 scrollToBottom();
             }
-            
-            if (data.typing) {
-                typingIndicator.style.display = 'block';
-                typingIndicator.textContent = `${data.user} is typing...`;
-                setTimeout(() => {
+
+            if (data.type === 'typing') {
+                if (data.is_typing && data.user !== currentUsername) {
+                    typingIndicator.style.display = 'block';
+                    typingIndicator.textContent = `${data.user} is typing...`;
+                } else {
                     typingIndicator.style.display = 'none';
-                }, 3000);
+                }
+            }
+
+            if (data.type === 'user_joined') {
+                const sysMsg = document.createElement('div');
+                sysMsg.className = 'system-message';
+                sysMsg.textContent = `${data.user} joined the room`;
+                chatLog.appendChild(sysMsg);
+                scrollToBottom();
+            }
+
+            if (data.type === 'user_left') {
+                const sysMsg = document.createElement('div');
+                sysMsg.className = 'system-message';
+                sysMsg.textContent = `${data.user} left the room`;
+                chatLog.appendChild(sysMsg);
+                scrollToBottom();
             }
         };
-        
+
         chatSocket.onclose = function(e) {
-            console.error('WebSocket closed unexpectedly. Attempting to reconnect...');
-            setTimeout(() => {
-                window.location.reload();
-            }, 3000);
+            console.error('WebSocket closed. Reconnecting...');
+            setTimeout(() => window.location.reload(), 3000);
         };
-        
+
         chatSocket.onerror = function(e) {
             console.error('WebSocket error:', e);
         };
-        
-        // Send message function
+
         function sendMessage() {
             const message = messageInput.value.trim();
             if (message && chatSocket.readyState === WebSocket.OPEN) {
                 chatSocket.send(JSON.stringify({
-                    'message': message,
-                    'user': '{{ user.username }}'
+                    type: 'message',
+                    content: message,
                 }));
                 messageInput.value = '';
                 messageInput.focus();
+
+                // Stop typing indicator
+                clearTimeout(typingTimeout);
+                chatSocket.send(JSON.stringify({ type: 'typing', is_typing: false }));
             }
         }
-        
-        // Event listeners
+
         sendButton.addEventListener('click', sendMessage);
-        
+
         messageInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
             }
         });
-        
+
         // Typing indicator
         messageInput.addEventListener('input', function() {
             if (chatSocket.readyState === WebSocket.OPEN) {
-                chatSocket.send(JSON.stringify({
-                    'typing': true,
-                    'user': '{{ user.username }}'
-                }));
-                
+                chatSocket.send(JSON.stringify({ type: 'typing', is_typing: true }));
+
                 clearTimeout(typingTimeout);
                 typingTimeout = setTimeout(() => {
                     if (chatSocket.readyState === WebSocket.OPEN) {
-                        chatSocket.send(JSON.stringify({
-                            'typing': false,
-                            'user': '{{ user.username }}'
-                        }));
+                        chatSocket.send(JSON.stringify({ type: 'typing', is_typing: false }));
                     }
                 }, 1000);
             }
         });
-        
-        // Focus input on load
+
         messageInput.focus();
-        
-        // Initial scroll to bottom
         scrollToBottom();
     </script>
 </body>
