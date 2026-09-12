@@ -1,7 +1,9 @@
+import uuid
 import jwt
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
@@ -25,20 +27,37 @@ from .schemas import (
     UserOut,
 )
 
+# In-memory store for used refresh token JTIs (clears on server restart)
+# For production, use Redis or Django cache backend
+_used_refresh_tokens: set[str] = set()
+_USED_TOKENS_MAX_SIZE = 10000
+
+
+def _cleanup_used_tokens():
+    """Prevent unbounded growth of used tokens set."""
+    if len(_used_refresh_tokens) > _USED_TOKENS_MAX_SIZE:
+        # Keep only the most recent half by clearing and letting re-populate
+        _used_refresh_tokens.clear()
+
 
 def create_tokens(user: User) -> dict:
     """Create JWT access and refresh tokens."""
     now = datetime.now(timezone.utc)
+    access_jti = str(uuid.uuid4())
+    refresh_jti = str(uuid.uuid4())
+
     access_payload = {
         "sub": str(user.id),
         "username": user.username,
         "type": "access",
+        "jti": access_jti,
         "iat": now,
         "exp": now + timedelta(hours=settings.JWT_EXPIRATION_HOURS),
     }
     refresh_payload = {
         "sub": str(user.id),
         "type": "refresh",
+        "jti": refresh_jti,
         "iat": now,
         "exp": now + timedelta(days=7),
     }
@@ -56,18 +75,22 @@ def decode_token(token: str) -> Optional[dict]:
         return None
 
 
+def _get_user_sync(user_id: int) -> Optional[User]:
+    try:
+        return User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return None
+
+
 class JWTAuth(HttpBearer):
     """JWT authentication for Ninja endpoints."""
 
-    def authenticate(self, request, token: str):
+    async def authenticate(self, request, token: str):
         payload = decode_token(token)
         if not payload or payload.get("type") != "access":
             return None
-        try:
-            user = User.objects.get(id=int(payload["sub"]))
-            return user
-        except User.DoesNotExist:
-            return None
+        user = await sync_to_async(_get_user_sync)(int(payload["sub"]))
+        return user
 
 
 api = NinjaAPI(auth=JWTAuth())
@@ -89,10 +112,22 @@ def refresh_token(request, payload: TokenRefreshRequest):
     data = decode_token(payload.refresh)
     if not data or data.get("type") != "refresh":
         return api.create_response(request, {"error": "Invalid refresh token"}, status=401)
+
+    # Check if this refresh token has already been used (rotation enforcement)
+    jti = data.get("jti")
+    if jti and jti in _used_refresh_tokens:
+        return api.create_response(request, {"error": "Refresh token already used"}, status=401)
+
+    # Mark the old refresh token as used
+    if jti:
+        _used_refresh_tokens.add(jti)
+        _cleanup_used_tokens()
+
     try:
         user = User.objects.get(id=int(data["sub"]))
     except User.DoesNotExist:
         return api.create_response(request, {"error": "User not found"}, status=401)
+
     tokens = create_tokens(user)
     return TokenResponse(**tokens)
 
@@ -101,8 +136,8 @@ def refresh_token(request, payload: TokenRefreshRequest):
 
 @api.get("/users/", response=list[UserOut])
 async def list_users(request):
-    users = [user async for user in User.objects.all()]
-    return [UserOut(id=u.id, username=u.username) for u in users]
+    users = await sync_to_async(list)(User.objects.all().values("id", "username"))
+    return [UserOut(id=u["id"], username=u["username"]) for u in users]
 
 
 # --- Room endpoints ---
@@ -110,7 +145,7 @@ async def list_users(request):
 @api.get("/rooms/", response=list[RoomOut])
 async def list_rooms(request):
     user = request.auth
-    rooms = (
+    rooms = await sync_to_async(list)(
         Message.objects.filter(user=user)
         .values("room")
         .annotate(
@@ -121,7 +156,7 @@ async def list_rooms(request):
     )
     return [
         RoomOut(room=r["room"], message_count=r["message_count"], last_message=r["last_message"])
-        async for r in rooms
+        for r in rooms
     ]
 
 
@@ -129,11 +164,10 @@ async def list_rooms(request):
 async def search_rooms(request, q: str = Query("")):
     if not q.strip():
         return {"rooms": []}
-    rooms = [
-        r["room"]
-        async for r in Message.objects.filter(room__icontains=q).values("room").distinct()[:10]
-    ]
-    return {"rooms": rooms}
+    rooms = await sync_to_async(list)(
+        Message.objects.filter(room__icontains=q).values("room").distinct()[:10]
+    )
+    return {"rooms": [r["room"] for r in rooms]}
 
 
 @api.post("/rooms/create/")
@@ -161,8 +195,11 @@ async def get_messages(request, room_name: str, page: int = 1, per_page: int = 2
     if not room_name or len(room_name) > 100:
         return api.create_response(request, {"error": "Invalid room name"}, status=400)
 
-    messages = Message.objects.filter(room=room_name).order_by("-timestamp")
-    paginator = Paginator(await sync_to_async_list(messages), per_page)
+    per_page = min(per_page, 100)
+    messages = await sync_to_async(list)(
+        Message.objects.filter(room=room_name).order_by("-timestamp")
+    )
+    paginator = Paginator(messages, per_page)
     page_obj = paginator.get_page(page)
 
     messages_data = [
@@ -220,19 +257,21 @@ async def get_private_messages(request, username: str, page: int = 1, per_page: 
         return api.create_response(request, {"error": "User not found"}, status=404)
 
     user1 = request.auth
-    messages = PrivateMessage.objects.filter(
-        Q(user1=user1, user2=user2) | Q(user1=user2, user2=user1)
-    ).order_by("-timestamp")
+    per_page = min(per_page, 100)
 
-    # Mark unread messages as read
-    unread = PrivateMessage.objects.filter(is_read=False, user2=user1, user1=user2)
-    async for msg in unread:
-        msg.is_read = True
-        msg.read_at = datetime.now(timezone.utc)
-        await msg.asave()
+    messages = await sync_to_async(list)(
+        PrivateMessage.objects.filter(
+            Q(user1=user1, user2=user2) | Q(user1=user2, user2=user1)
+        ).order_by("-timestamp")
+    )
 
-    messages_list = await sync_to_async_list(messages)
-    paginator = Paginator(messages_list, per_page)
+    # Bulk mark unread messages as read (instead of N+1 individual saves)
+    now = datetime.now(timezone.utc)
+    await PrivateMessage.objects.filter(
+        is_read=False, user2=user1, user1=user2
+    ).aupdate(is_read=True, read_at=now)
+
+    paginator = Paginator(messages, per_page)
     page_obj = paginator.get_page(page)
 
     messages_data = [
@@ -256,10 +295,3 @@ async def get_private_messages(request, username: str, page: int = 1, per_page: 
         total_pages=paginator.num_pages,
         total_messages=paginator.count,
     )
-
-
-# --- Helper ---
-
-async def sync_to_async_list(queryset):
-    """Evaluate a queryset asynchronously."""
-    return [item async for item in queryset]

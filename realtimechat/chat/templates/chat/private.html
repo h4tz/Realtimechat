@@ -108,7 +108,7 @@
         const wsToken = document.getElementById('ws-token').value;
         const currentUsername = document.getElementById('current-username').value;
 
-        const wsUrl = `ws://localhost:8001/ws/private/${targetUsername}/?token=${wsToken}`;
+        const wsUrl = `ws://localhost:8001/ws/private/${targetUsername}/`;
         const chatSocket = new WebSocket(wsUrl);
 
         const chatLog = document.getElementById('chat-log');
@@ -120,7 +120,11 @@
 
         function scrollToBottom() { chatLog.scrollTop = chatLog.scrollHeight; }
 
-        chatSocket.onopen = function() { scrollToBottom(); };
+        chatSocket.onopen = function() {
+            // Send auth message as first message (token not in URL)
+            chatSocket.send(JSON.stringify({ type: 'auth', token: wsToken }));
+            scrollToBottom();
+        };
 
         chatSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);

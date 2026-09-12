@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 export function useWebSocket(url: string) {
   const ws = ref<WebSocket | null>(null)
   const connected = ref(false)
+  const authenticated = ref(false)
   const reconnectAttempts = ref(0)
   const maxReconnectAttempts = 10
   let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
@@ -15,18 +16,24 @@ export function useWebSocket(url: string) {
     if (!auth.accessToken) return
 
     intentionalClose = false
-    const separator = url.includes('?') ? '&' : '?'
-    const fullUrl = `${url}${separator}token=${auth.accessToken}`
+    authenticated.value = false
 
-    ws.value = new WebSocket(fullUrl)
+    ws.value = new WebSocket(url)
 
     ws.value.onopen = () => {
+      // Send auth message as first message (token not in URL)
+      ws.value?.send(JSON.stringify({
+        type: 'auth',
+        token: auth.accessToken,
+      }))
       connected.value = true
+      authenticated.value = true
       reconnectAttempts.value = 0
     }
 
     ws.value.onclose = () => {
       connected.value = false
+      authenticated.value = false
       if (!intentionalClose && reconnectAttempts.value < maxReconnectAttempts) {
         const delay = Math.min(1000 * 2 ** reconnectAttempts.value, 30000)
         reconnectTimeout = setTimeout(() => {
@@ -42,7 +49,7 @@ export function useWebSocket(url: string) {
   }
 
   function send(data: WSOutgoingMessage) {
-    if (ws.value?.readyState === WebSocket.OPEN) {
+    if (ws.value?.readyState === WebSocket.OPEN && authenticated.value) {
       ws.value.send(JSON.stringify(data))
     }
   }
@@ -58,7 +65,12 @@ export function useWebSocket(url: string) {
   function onMessage(callback: (data: WSIncomingMessage) => void) {
     if (!ws.value) return
     ws.value.onmessage = (event: MessageEvent) => {
-      callback(JSON.parse(event.data))
+      try {
+        const data = JSON.parse(event.data)
+        callback(data)
+      } catch {
+        // Ignore malformed messages
+      }
     }
   }
 
@@ -72,5 +84,5 @@ export function useWebSocket(url: string) {
     disconnect()
   })
 
-  return { ws, connected, connect, disconnect, send, sendTyping, sendMessage, onMessage }
+  return { ws, connected, authenticated, connect, disconnect, send, sendTyping, sendMessage, onMessage }
 }

@@ -1,5 +1,7 @@
-# Virtual environment
+# Virtual environments
 myenv/
+venv/
+realtimechat/venv/
 
 # Django
 __pycache__/
@@ -18,3 +20,13 @@ Thumbs.db
 
 # dotenv
 .env
+
+# Python test/coverage
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Frontend
+realtimechat/frontend/node_modules/
+realtimechat/frontend/dist/

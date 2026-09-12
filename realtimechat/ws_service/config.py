@@ -2,11 +2,18 @@ import os
 from pathlib import Path
 
 # JWT settings (must match Django settings)
-JWT_SECRET_KEY = os.environ.get(
-    "JWT_SECRET_KEY",
-    os.environ.get("DJANGO_SECRET_KEY", "django-insecure-dev-key-change-in-production"),
-)
+# In development (DJANGO_DEBUG=True), falls back to DJANGO_SECRET_KEY.
+# In production, JWT_SECRET_KEY must be explicitly set.
+DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() == "true"
+
+JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY") or os.environ.get("DJANGO_SECRET_KEY")
 JWT_ALGORITHM = "HS256"
+
+if not DEBUG and not os.environ.get("JWT_SECRET_KEY"):
+    raise ValueError(
+        "JWT_SECRET_KEY environment variable is required in production. "
+        "Set it to a secure random string."
+    )
 
 # Database
 BASE_DIR = Path(__file__).resolve().parent.parent

@@ -71,7 +71,8 @@ export interface WSIncomingMessage {
 }
 
 export interface WSOutgoingMessage {
-  type: 'message' | 'typing'
+  type: 'message' | 'typing' | 'auth'
   content?: string
   is_typing?: boolean
+  token?: string
 }

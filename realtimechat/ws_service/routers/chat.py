@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from datetime import datetime, timezone
@@ -13,49 +14,64 @@ router = APIRouter()
 
 
 @router.websocket("/ws/chat/{room_name}/")
-async def websocket_chat(websocket: WebSocket, room_name: str, token: str):
+async def websocket_chat(websocket: WebSocket, room_name: str):
     """WebSocket endpoint for group chat."""
-    # Authenticate
-    user = await authenticate_user(token)
-    if not user:
-        await websocket.close(code=4001, reason="Invalid token")
-        return
+    await websocket.accept()
 
     # Validate room name
     if not room_name or len(room_name) > 100:
         await websocket.close(code=4002, reason="Invalid room name")
         return
 
-    await websocket.accept()
-    room_group = f"chat_{room_name}"
+    # Wait for auth message as first message (token sent in body, not URL)
+    try:
+        auth_msg = await asyncio.wait_for(websocket.receive_json(), timeout=10.0)
+    except asyncio.TimeoutError:
+        await websocket.close(code=4003, reason="Auth timeout")
+        return
 
-    # Track connection
-    await manager.add_connection(room_group, websocket.client.host, {
+    if auth_msg.get("type") != "auth" or not auth_msg.get("token"):
+        await websocket.close(code=4001, reason="Invalid auth message")
+        return
+
+    user = await authenticate_user(auth_msg["token"])
+    if not user:
+        await websocket.close(code=4001, reason="Invalid token")
+        return
+
+    room_group = f"chat_{room_name}"
+    channel_name = f"user_{user['id']}"
+
+    # Track connection by user_id, not IP
+    await manager.add_connection(room_group, channel_name, {
         "id": user["id"],
         "username": user["username"],
         "websocket": websocket,
     })
 
-    # Subscribe to Redis channel for this room
-    await manager.subscribe_room(room_group)
-
-    # Notify room that user joined
-    await manager.publish(room_group, {
-        "type": "user_joined",
-        "user": user["username"],
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    })
-
-    logger.info(f"User {user['username']} connected to room {room_name}")
+    # Create a per-connection PubSub instance
+    pubsub = manager.create_pubsub()
+    listener_task = None
 
     try:
-        # Listen for Redis messages in background task
-        import asyncio
+        # Subscribe to Redis channel for this room
+        if pubsub:
+            await pubsub.subscribe(room_group)
 
+        # Notify room that user joined
+        await manager.publish(room_group, {
+            "type": "user_joined",
+            "user": user["username"],
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+
+        logger.info(f"User {user['username']} connected to room {room_name}")
+
+        # Listen for Redis messages in background task
         async def redis_listener():
-            if not manager.pubsub:
+            if not pubsub:
                 return
-            async for message in manager.pubsub.listen():
+            async for message in pubsub.listen():
                 if message["type"] == "message":
                     data = json.loads(message["data"])
                     # Don't echo back to the same user who sent it
@@ -103,11 +119,26 @@ async def websocket_chat(websocket: WebSocket, room_name: str, token: str):
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
     finally:
-        # Cleanup
-        await manager.remove_connection(room_group, websocket.client.host)
+        # Cancel the listener task
+        if listener_task and not listener_task.done():
+            listener_task.cancel()
+            try:
+                await listener_task
+            except asyncio.CancelledError:
+                pass
+
+        # Cleanup connection
+        await manager.remove_connection(room_group, channel_name)
         await manager.publish(room_group, {
             "type": "user_left",
             "user": user["username"],
             "timestamp": datetime.now(timezone.utc).isoformat(),
         })
-        await manager.unsubscribe_room(room_group)
+
+        # Cleanup per-connection PubSub
+        if pubsub:
+            try:
+                await pubsub.unsubscribe(room_group)
+                await pubsub.close()
+            except Exception:
+                pass

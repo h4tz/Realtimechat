@@ -8,8 +8,14 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-dev-key-change
 DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() == "true"
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
+# Enforce secure keys in production
+if not DEBUG and "insecure" in SECRET_KEY:
+    raise ValueError("DJANGO_SECRET_KEY must be a secure random string in production.")
+
 # JWT settings (shared with FastAPI WebSocket service)
 JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", SECRET_KEY)
+if not DEBUG and not os.environ.get("JWT_SECRET_KEY"):
+    raise ValueError("JWT_SECRET_KEY environment variable is required in production.")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = int(os.environ.get("JWT_EXPIRATION_HOURS", "24"))
 
@@ -20,10 +26,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "corsheaders",
     "chat",
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -78,5 +86,10 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, "chat/static")]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# CORS (for FastAPI WebSocket service to reach Django API)
+# CORS
 CORS_ALLOW_ALL_ORIGINS = DEBUG
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+CORS_ALLOW_CREDENTIALS = True

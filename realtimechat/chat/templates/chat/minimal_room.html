@@ -174,8 +174,8 @@
         const wsToken = document.getElementById('ws-token').value;
         const currentUsername = document.getElementById('current-username').value;
 
-        // Connect to FastAPI WebSocket service
-        const wsUrl = `ws://localhost:8001/ws/chat/${roomName}/?token=${wsToken}`;
+        // Connect to FastAPI WebSocket service (token sent as first message, not URL)
+        const wsUrl = `ws://localhost:8001/ws/chat/${roomName}/`;
         const chatSocket = new WebSocket(wsUrl);
 
         const chatLog = document.getElementById('chat-log');
@@ -191,6 +191,8 @@
 
         chatSocket.onopen = function(e) {
             console.log('WebSocket connected');
+            // Send auth message as first message (token not in URL)
+            chatSocket.send(JSON.stringify({ type: 'auth', token: wsToken }));
             scrollToBottom();
         };
 

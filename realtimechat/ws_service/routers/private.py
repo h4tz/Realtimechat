@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from datetime import datetime, timezone
@@ -18,10 +19,23 @@ def get_private_room_name(user1_id: int, user2_id: int) -> str:
 
 
 @router.websocket("/ws/private/{target_username}/")
-async def websocket_private_chat(websocket: WebSocket, target_username: str, token: str):
+async def websocket_private_chat(websocket: WebSocket, target_username: str):
     """WebSocket endpoint for private chat."""
+    await websocket.accept()
+
+    # Wait for auth message as first message
+    try:
+        auth_msg = await asyncio.wait_for(websocket.receive_json(), timeout=10.0)
+    except asyncio.TimeoutError:
+        await websocket.close(code=4003, reason="Auth timeout")
+        return
+
+    if auth_msg.get("type") != "auth" or not auth_msg.get("token"):
+        await websocket.close(code=4001, reason="Invalid auth message")
+        return
+
     # Authenticate current user
-    user = await authenticate_user(token)
+    user = await authenticate_user(auth_msg["token"])
     if not user:
         await websocket.close(code=4001, reason="Invalid token")
         return
@@ -36,31 +50,33 @@ async def websocket_private_chat(websocket: WebSocket, target_username: str, tok
         await websocket.close(code=4003, reason="Cannot chat with yourself")
         return
 
-    await websocket.accept()
-
     # Generate consistent private room name
     room_name = get_private_room_name(user["id"], target["id"])
-    room_group = f"private_{room_name}"
+    room_group = room_name
+    channel_name = f"user_{user['id']}"
 
-    # Track connection
-    await manager.add_connection(room_group, websocket.client.host, {
+    # Track connection by user_id, not IP
+    await manager.add_connection(room_group, channel_name, {
         "id": user["id"],
         "username": user["username"],
         "websocket": websocket,
     })
 
-    # Subscribe to Redis channel
-    await manager.subscribe_room(room_group)
-
-    logger.info(f"Private chat started between {user['username']} and {target['username']}")
+    # Create a per-connection PubSub instance
+    pubsub = manager.create_pubsub()
+    listener_task = None
 
     try:
-        import asyncio
+        # Subscribe to Redis channel
+        if pubsub:
+            await pubsub.subscribe(room_group)
+
+        logger.info(f"Private chat started between {user['username']} and {target['username']}")
 
         async def redis_listener():
-            if not manager.pubsub:
+            if not pubsub:
                 return
-            async for message in manager.pubsub.listen():
+            async for message in pubsub.listen():
                 if message["type"] == "message":
                     data = json.loads(message["data"])
                     if data.get("user") != user["username"]:
@@ -106,5 +122,21 @@ async def websocket_private_chat(websocket: WebSocket, target_username: str, tok
     except Exception as e:
         logger.error(f"Private WebSocket error: {e}")
     finally:
-        await manager.remove_connection(room_group, websocket.client.host)
-        await manager.unsubscribe_room(room_group)
+        # Cancel the listener task
+        if listener_task and not listener_task.done():
+            listener_task.cancel()
+            try:
+                await listener_task
+            except asyncio.CancelledError:
+                pass
+
+        # Cleanup connection
+        await manager.remove_connection(room_group, channel_name)
+
+        # Cleanup per-connection PubSub
+        if pubsub:
+            try:
+                await pubsub.unsubscribe(room_group)
+                await pubsub.close()
+            except Exception:
+                pass
