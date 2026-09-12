@@ -6,6 +6,7 @@ PyJWT==2.9.0
 uvicorn==0.34.0
 pydantic==2.11.3
 aiosqlite==0.20.0
+django-cors-headers==4.6.0
 redis==6.2.0
 gunicorn==23.0.0
 sqlparse==0.5.3
