@@ -1,0 +1,23 @@
+[project]
+name = "realtimechat"
+version = "1.0.0"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "realtimechat.settings"
+pythonpath = ["."]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-v --tb=short"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests requiring external services (Redis, DB)",
+]
+
+[tool.coverage.run]
+source = ["chat", "ws_service"]
+omit = ["*/migrations/*", "*/tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true

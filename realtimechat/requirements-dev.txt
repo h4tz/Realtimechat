@@ -1,0 +1,10 @@
+-r requirements.txt
+
+# Testing
+pytest==8.4.1
+pytest-django==4.11.0
+pytest-asyncio==1.0.0
+pytest-cov==6.2.1
+factory-boy==3.3.1
+fakeredis==2.26.2
+httpx==0.28.1
