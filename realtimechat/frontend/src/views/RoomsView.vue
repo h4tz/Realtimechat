@@ -34,23 +34,6 @@ function joinRoom(roomName: string) {
   router.push(`/chat/${encodeURIComponent(roomName)}`)
 }
 
-async function createAndJoin() {
-  const name = roomInput.value.trim()
-  if (!name) return
-  try {
-    await roomsStore.create(name)
-    roomInput.value = ''
-    joinRoom(name)
-  } catch {
-    showCreateError.value = true
-    setTimeout(() => (showCreateError.value = false), 3000)
-  }
-}
-
-function handleRoomKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter') createAndJoin()
-}
-
 function openPrivateChat(username: string) {
   router.push(`/private/${encodeURIComponent(username)}`)
 }
@@ -61,12 +44,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-100">
+  <div class="min-h-screen bg-slate-900">
     <AppHeader />
 
-    <div class="max-w-lg mx-auto px-4 py-8">
-      <div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
-        <h2 class="text-lg font-semibold text-slate-800 mb-4">Join a Room</h2>
+    <div class="max-w-lg mx-auto w-full px-4 py-8">
+      <div class="bg-slate-800 rounded-2xl shadow-2xl p-6 border border-slate-700 mb-6 animate-slide-up">
+        <h2 class="text-lg font-semibold text-slate-100 mb-4">Join a Room</h2>
 
         <div class="flex gap-2 mb-3">
           <input
@@ -74,17 +57,17 @@ onMounted(() => {
             @keydown="handleRoomKeydown"
             type="text"
             placeholder="Enter room name..."
-            class="flex-1 px-4 py-2.5 rounded-full border border-slate-300 text-sm outline-none focus:border-blue-500 transition-colors"
+            class="flex-1 bg-slate-700 border border-slate-500 rounded-xl px-5 py-4 text-slate-100 outline-none focus:border-primary transition-colors"
           />
           <button
             @click="createAndJoin"
-            class="px-5 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-full hover:bg-blue-600 transition-colors"
+            class="btn btn-primary rounded-xl px-5 py-2.5 font-medium hover:shadow-lg transition-all"
           >
             Join
           </button>
         </div>
 
-        <p v-if="roomsStore.error || showCreateError" class="text-xs text-red-500 mt-2">
+        <p v-if="roomsStore.error || showCreateError" class="text-sm text-slate-400 mt-2">
           {{ roomsStore.error || 'Failed to create room' }}
         </p>
 
@@ -94,14 +77,14 @@ onMounted(() => {
             @input="onSearchInput"
             type="text"
             placeholder="Search rooms..."
-            class="w-full px-4 py-2.5 rounded-full border border-slate-200 text-sm outline-none focus:border-blue-400 transition-colors"
+            class="w-full bg-slate-700 border border-slate-500 rounded-xl px-5 py-4 text-slate-400 outline-none focus:border-primary transition-colors"
           />
-          <div v-if="searchSuggestions.length && searchQuery.trim()" class="mt-2 flex flex-wrap gap-1">
+          <div v-if="searchSuggestions.length && searchQuery.trim()" class="mt-2 flex flex-wrap gap-2">
             <button
               v-for="room in searchSuggestions"
               :key="room"
               @click="joinRoom(room)"
-              class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-full transition-colors"
+              class="inline-flex items-center rounded-full px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
             >
               #{{ room }}
             </button>
@@ -109,14 +92,14 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="bg-white rounded-2xl shadow-sm p-6">
-        <h2 class="text-lg font-semibold text-slate-800 mb-4">Your Rooms</h2>
+      <div class="bg-slate-800 rounded-2xl shadow-2xl p-6 animate-slide-up">
+        <h2 class="text-lg font-semibold text-slate-100 mb-4">Your Rooms</h2>
 
         <div v-if="roomsStore.loading" class="text-center py-8 text-slate-400 text-sm">
           Loading rooms...
         </div>
 
-        <div v-else-if="filteredRooms.length" class="space-y-2">
+        <div v-else-if="filteredRooms.length" class="space-y-3">
           <RoomCard
             v-for="room in filteredRooms"
             :key="room.room"
@@ -125,8 +108,8 @@ onMounted(() => {
           />
         </div>
 
-        <div v-else class="text-center py-8 text-slate-400 text-sm">
-          No rooms yet. Create one above!
+        <div v-else class="py-8 text-center">
+          <p class="text-slate-400">No rooms yet. <a href="#" class="text-slate-400 hover-underline focus-visible focus-visible-on-focus" @click.prevent="roomInput = 'new-room'">Create one</a> above!</p>
         </div>
       </div>
     </div>

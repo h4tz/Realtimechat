@@ -24,7 +24,7 @@ const { connected, connect, disconnect, sendMessage, sendTyping, onMessage } = u
 
 const { start: startTyping, stop: stopTyping } = useTyping(
   () => sendTyping(true),
-  () => sendTyping(false),
+  () => sendTyping(false)
 )
 
 function scrollToBottom() {
@@ -47,14 +47,14 @@ function handleWsMessage(data: WSIncomingMessage) {
         is_edited: false,
         edited_at: null,
       })
-      typingUsers.value.delete(data.user!)
+      typingUsers.value.delete(data.user as string)
       scrollToBottom()
       break
     case 'typing':
       if (data.user !== auth.username && data.is_typing) {
-        typingUsers.value.add(data.user!)
+        typingUsers.value.add(data.user as string)
       } else {
-        typingUsers.value.delete(data.user!)
+        typingUsers.value.delete(data.user as string)
       }
       break
     case 'user_joined':
@@ -90,21 +90,21 @@ watch(
 </script>
 
 <template>
-  <div class="h-screen flex flex-col bg-slate-100">
+  <div class="min-h-screen flex flex-col bg-slate-900">
     <AppHeader />
 
     <div class="bg-slate-800 text-white text-center py-2 text-sm font-light tracking-wide">
       #{{ roomName }}
     </div>
 
-    <div ref="chatContainer" class="flex-1 overflow-y-auto">
-      <div v-if="chatStore.loading" class="flex items-center justify-center h-full text-slate-400 text-sm">
+    <div ref="chatContainer" class="flex-1 overflow-y-auto flex flex-col pt-2 animate-fade-in">
+      <div v-if="chatStore.loading" class="flex-1 items-center justify-center py-8 text-slate-400 text-sm">
         Loading messages...
       </div>
-      <MessageList v-else :messages="(chatStore.messages as any)" />
+      <MessageList v-else :messages="chatStore.messages" />
     </div>
 
-    <div v-if="typingUsers.size > 0" class="border-t border-slate-200 bg-white">
+    <div v-if="typingUsers.size > 0" class="border-t border-slate-600 pt-3">
       <TypingIndicator
         v-for="user in typingUsers"
         :key="user"
@@ -112,7 +112,7 @@ watch(
       />
     </div>
 
-    <div class="bg-white border-t border-slate-200">
+    <div class="bg-slate-800 border-t border-slate-600 pt-4">
       <MessageInput @send="handleSend" @input="handleInput" />
     </div>
   </div>
