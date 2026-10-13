@@ -69,7 +69,7 @@ onMounted(() => {
     <AppHeader />
 
     <div class="max-w-lg mx-auto w-full px-4 py-8">
-      <div class="bg-slate-800 rounded-2xl shadow-2xl p-6 border border-slate-700 mb-6 animate-slide-up">
+      <div class="bg-[#2b2d31]/80 backdrop-blur rounded-xl shadow-2xl p-6 border border-[#3f4147] mb-6 animate-slide-up transition-all hover:shadow-xl hover:-translate-y-0.5">
         <h2 class="text-lg font-semibold text-slate-100 mb-4">Join a Room</h2>
 
         <div class="flex gap-2 mb-3">
@@ -113,7 +113,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="bg-slate-800 rounded-2xl shadow-2xl p-6 animate-slide-up">
+      <div class="bg-[#2b2d31]/80 backdrop-blur rounded-xl shadow-2xl p-6 animate-slide-up transition-all hover:shadow-xl hover:-translate-y-0.5">
         <h2 class="text-lg font-semibold text-slate-100 mb-4">Your Rooms</h2>
 
         <div v-if="roomsStore.loading" class="text-center py-8 text-slate-400 text-sm">

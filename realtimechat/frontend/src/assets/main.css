@@ -1,3 +1,22 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    background: linear-gradient(120deg, #1e1f22, #313338, #232428, #313338);
+    background-size: 200% 200%;
+    animation: gradientShift 18s ease infinite;
+  }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(88, 101, 242, 0.25); }
+  50% { box-shadow: 0 0 40px rgba(88, 101, 242, 0.5); }
+}
