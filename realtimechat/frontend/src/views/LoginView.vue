@@ -10,8 +10,9 @@ const username = ref('')
 const password = ref('')
 const error = ref('')
 const loading = ref(false)
+const isRegister = ref(false)
 
-async function handleLogin() {
+async function handleSubmit() {
   if (!username.value.trim() || !password.value.trim()) {
     error.value = 'Please fill in all fields'
     return
@@ -20,10 +21,14 @@ async function handleLogin() {
   loading.value = true
   error.value = ''
   try {
-    await auth.login(username.value, password.value)
+    if (isRegister.value) {
+      await auth.register(username.value, password.value)
+    } else {
+      await auth.login(username.value, password.value)
+    }
     router.push('/')
   } catch (e: any) {
-    error.value = e.response?.data?.error || 'Login failed'
+    error.value = e.response?.data?.error || (isRegister.value ? 'Register failed' : 'Login failed')
   } finally {
     loading.value = false
   }
@@ -67,7 +72,7 @@ function handleKeydown(e: KeyboardEvent) {
             class="w-full bg-slate-700 border border-slate-500 rounded-xl px-5 py-4 text-slate-100 outline-none focus:border-slate-400 transition-colors placeholder-slate-500"
           />
           <button
-            @click="handleLogin"
+            @click="handleSubmit"
             :disabled="loading"
             class="w-full btn btn-primary rounded-xl py-4 rounded-xl font-medium text-lg hover:shadow-lg transition-all"
             :class="{ 'opacity-50 cursor-not-allowed': loading }"
@@ -79,7 +84,9 @@ function handleKeydown(e: KeyboardEvent) {
         <p v-if="error" class="mt-6 text-sm text-slate-400 text-center">{{ error }}</p>
 
         <p class="mt-8 text-xs text-slate-500 text-center">
-          Don't have an account? <a href="#" class="text-slate-400 hover-underline focus-visible focus-visible-on-focus" @click="$router.push('/register')">Register</a>
+          <a href="#" class="text-slate-400 hover-underline" @click.prevent="isRegister = !isRegister">
+            {{ isRegister ? 'Already have an account? Sign in' : "Don't have an account? Register" }}
+          </a>
         </p>
       </div>
     </div>
