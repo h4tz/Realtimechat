@@ -10,32 +10,6 @@
     overflow-x: hidden;
   }
 
-  body::before,
-  body::after {
-    content: "";
-    position: fixed;
-    width: 60vmax;
-    height: 60vmax;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.25;
-    pointer-events: none;
-    z-index: -1;
-    animation: floatBlob 22s ease-in-out infinite;
-  }
-
-  body::before {
-    background: radial-gradient(circle, #eb459e, transparent 70%);
-    top: -20vmax;
-    left: -20vmax;
-  }
-
-  body::after {
-    background: radial-gradient(circle, #eb459e, transparent 70%);
-    bottom: -20vmax;
-    right: -20vmax;
-    animation-delay: -11s;
-  }
 }
 
 @keyframes floatBlob {
