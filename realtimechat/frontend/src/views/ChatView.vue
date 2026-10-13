@@ -1,18 +1,20 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useRoomsStore } from '@/stores/rooms'
 import { useChatStore } from '@/stores/chat'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { useTyping } from '@/composables/useTyping'
-import AppHeader from '@/components/AppHeader.vue'
 import MessageList from '@/components/MessageList.vue'
 import MessageInput from '@/components/MessageInput.vue'
 import TypingIndicator from '@/components/TypingIndicator.vue'
 import type { WSIncomingMessage } from '@/types'
 
 const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
+const roomsStore = useRoomsStore()
 const chatStore = useChatStore()
 
 const roomName = ref(route.params.room as string)
@@ -72,7 +74,13 @@ function handleInput() {
   startTyping()
 }
 
+function logout() {
+  auth.logout()
+  router.push('/login')
+}
+
 onMounted(async () => {
+  await roomsStore.fetchRooms()
   await chatStore.fetchRoomMessages(roomName.value)
   scrollToBottom()
   connect()
@@ -90,31 +98,56 @@ watch(
 </script>
 
 <template>
-  <div class="h-screen flex flex-col bg-[#313338] text-[#dcddde]">
-    <AppHeader />
+  <div class="h-screen flex bg-[#313338] text-[#dcddde]">
+    <!-- Server rail -->
+    <aside class="w-[72px] bg-[#1e1f22] flex flex-col items-center py-3 gap-2 flex-shrink-0">
+      <router-link to="/" class="w-12 h-12 rounded-full bg-[#5865f2] flex items-center justify-center text-white font-bold">C</router-link>
+    </aside>
 
-    <div class="bg-[#2b2d31] text-[#dcddde] px-4 py-2 text-sm font-semibold flex items-center gap-1 border-b border-[#1e1f22]">
-      <span class="text-[#80848e] text-lg leading-none">#</span>
-      <span>{{ roomName }}</span>
-    </div>
-
-    <div ref="chatContainer" class="flex-1 overflow-y-auto flex flex-col pt-2">
-      <div v-if="chatStore.loading" class="flex-1 flex items-center justify-center py-8 text-[#80848e] text-sm">
-        Loading messages...
+    <!-- Channel sidebar -->
+    <aside class="w-60 bg-[#2b2d31] flex flex-col flex-shrink-0">
+      <div class="h-12 px-4 flex items-center font-semibold border-b border-[#1e1f22]">Chat</div>
+      <div class="flex-1 overflow-y-auto p-2">
+        <div class="text-xs uppercase text-[#80848e] font-semibold mb-1 px-2">Text Channels</div>
+        <button
+          v-for="r in roomsStore.rooms"
+          :key="r.room"
+          @click="router.push(`/chat/${encodeURIComponent(r.room)}`)"
+          class="w-full text-left px-2 py-1.5 rounded hover:bg-[#35373c] text-[#b5bac1] hover:text-white text-sm flex items-center gap-1"
+          :class="r.room === roomName ? 'bg-[#404249] text-white' : ''"
+        >
+          <span class="text-[#80848e]">#</span>{{ r.room }}
+        </button>
       </div>
-      <MessageList v-else :messages="chatStore.messages" />
-    </div>
+      <div class="h-14 bg-[#232428] px-2 flex items-center gap-2 border-t border-[#1e1f22]">
+        <div class="w-8 h-8 rounded-full bg-[#5865f2] flex items-center justify-center text-xs font-semibold">{{ auth.username?.[0]?.toUpperCase() }}</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium truncate">{{ auth.username }}</div>
+        </div>
+        <button @click="logout" class="text-[#80848e] hover:text-white text-xs">Logout</button>
+      </div>
+    </aside>
 
-    <div v-if="typingUsers.size > 0" class="px-4 py-1 bg-[#313338] text-[#80848e] text-xs italic">
-      <TypingIndicator
-        v-for="user in typingUsers"
-        :key="user"
-        :user="user"
-      />
-    </div>
+    <!-- Chat area -->
+    <main class="flex-1 flex flex-col min-w-0">
+      <div class="h-12 px-4 flex items-center font-semibold border-b border-[#1e1f22] bg-[#313338]">
+        <span class="text-[#80848e] mr-1">#</span>{{ roomName }}
+      </div>
 
-    <div class="px-4 pb-6 pt-2 bg-[#313338]">
-      <MessageInput @send="handleSend" @input="handleInput" />
-    </div>
+      <div ref="chatContainer" class="flex-1 overflow-y-auto px-2">
+        <div v-if="chatStore.loading" class="flex items-center justify-center h-full text-[#80848e] text-sm">
+          Loading messages...
+        </div>
+        <MessageList v-else :messages="chatStore.messages" />
+      </div>
+
+      <div v-if="typingUsers.size > 0" class="px-4 py-1 text-[#80848e] text-xs italic">
+        <TypingIndicator v-for="user in typingUsers" :key="user" :user="user" />
+      </div>
+
+      <div class="px-4 pb-6 pt-2 bg-[#313338]">
+        <MessageInput @send="handleSend" @input="handleInput" />
+      </div>
+    </main>
   </div>
 </template>
