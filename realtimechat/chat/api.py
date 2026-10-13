@@ -208,23 +208,47 @@ async def get_messages(request, room_name: str, page: int = 1, per_page: int = 2
         return api.create_response(request, {"error": "Invalid room name"}, status=400)
 
     per_page = min(per_page, 100)
-    messages = await sync_to_async(list)(
-        Message.objects.filter(room=room_name).order_by("-timestamp")
-    )
-    paginator = Paginator(messages, per_page)
-    page_obj = paginator.get_page(page)
+
+    def _fetch():
+        qs = list(Message.objects.filter(room=room_name).select_related("user").order_by("-timestamp"))
+        paginator = Paginator(qs, per_page)
+        page_obj = paginator.get_page(page)
+        data = [
+            {
+                "id": str(m.id),
+                "room": m.room,
+                "user_id": m.user.id,
+                "username": m.user.username,
+                "content": m.content,
+                "timestamp": m.timestamp,
+                "is_edited": m.is_edited,
+                "edited_at": m.edited_at,
+            }
+            for m in page_obj.object_list
+        ]
+        return data, paginator.count
+
+    def _fetch_full():
+        inner_data, inner_total = _fetch()
+        # recompute pagination metadata synchronously
+        qs = list(Message.objects.filter(room=room_name).select_related("user").order_by("-timestamp"))
+        paginator = Paginator(qs, per_page)
+        page_obj = paginator.get_page(page)
+        return inner_data, paginator, page_obj
+
+    data, paginator, page_obj = await sync_to_async(_fetch_full)()
 
     messages_data = [
         MessageOut(
-            id=str(m.id),
-            room=m.room,
-            user=UserOut(id=m.user.id, username=m.user.username),
-            content=m.content,
-            timestamp=m.timestamp,
-            is_edited=m.is_edited,
-            edited_at=m.edited_at,
+            id=d["id"],
+            room=d["room"],
+            user=UserOut(id=d["user_id"], username=d["username"]),
+            content=d["content"],
+            timestamp=d["timestamp"],
+            is_edited=d["is_edited"],
+            edited_at=d["edited_at"],
         )
-        for m in page_obj.object_list
+        for d in data
     ]
 
     return PaginatedMessages(
