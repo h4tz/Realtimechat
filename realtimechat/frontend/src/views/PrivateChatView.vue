@@ -87,21 +87,21 @@ watch(
 </script>
 
 <template>
-  <div class="h-screen flex flex-col bg-slate-100">
+  <div class="h-screen flex flex-col bg-[#313338] text-[#dcddde]">
     <AppHeader />
 
-    <div class="bg-slate-800 text-white text-center py-2 text-sm font-light tracking-wide">
+    <div class="bg-[#2b2d31] text-[#dcddde] px-4 py-2 text-sm font-semibold border-b border-[#1e1f22]">
       {{ targetUsername }}
     </div>
 
     <div ref="chatContainer" class="flex-1 overflow-y-auto">
-      <div v-if="chatStore.loading" class="flex items-center justify-center h-full text-slate-400 text-sm">
+      <div v-if="chatStore.loading" class="flex items-center justify-center h-full text-[#80848e] text-sm">
         Loading messages...
       </div>
       <MessageList v-else :messages="(chatStore.messages as any)" />
     </div>
 
-    <div v-if="typingUsers.size > 0" class="border-t border-slate-200 bg-white">
+    <div v-if="typingUsers.size > 0" class="px-4 py-1 text-[#80848e] text-xs italic">
       <TypingIndicator
         v-for="user in typingUsers"
         :key="user"
@@ -109,7 +109,7 @@ watch(
       />
     </div>
 
-    <div class="bg-white border-t border-slate-200">
+    <div class="px-4 pb-6 pt-2 bg-[#313338]">
       <MessageInput @send="handleSend" @input="handleInput" />
     </div>
   </div>

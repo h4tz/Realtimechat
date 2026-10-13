@@ -12,15 +12,15 @@ function logout() {
 </script>
 
 <template>
-  <header class="bg-slate-800 text-white px-4 py-3 flex items-center justify-between shadow-md">
-    <router-link to="/" class="text-lg font-semibold tracking-wide hover:text-slate-200 transition-colors">
+  <header class="bg-[#2b2d31] text-white px-4 py-2.5 flex items-center justify-between border-b border-[#1e1f22]">
+    <router-link to="/" class="text-sm font-semibold tracking-wide hover:text-[#dcddde] transition-colors">
       Chat
     </router-link>
-    <div class="flex items-center gap-4">
-      <span class="text-sm text-slate-300">{{ auth.username }}</span>
+    <div class="flex items-center gap-3">
+      <span class="text-sm text-[#dcddde]">{{ auth.username }}</span>
       <button
         @click="logout"
-        class="text-sm bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg transition-colors"
+        class="text-xs bg-[#383a40] hover:bg-[#404249] px-3 py-1.5 rounded transition-colors"
       >
         Logout
       </button>

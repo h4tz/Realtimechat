@@ -44,7 +44,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-900">
+  <div class="min-h-screen bg-[#313338] text-[#dcddde]">
     <AppHeader />
 
     <div class="max-w-lg mx-auto w-full px-4 py-8">

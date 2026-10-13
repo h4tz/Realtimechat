@@ -35,9 +35,9 @@ function handleKeydown(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-slate-900 px-4 py-12">
+  <div class="min-h-screen flex items-center justify-center bg-[#313338] px-4 py-12">
     <div class="max-w-md mx-auto w-full">
-      <div class="bg-slate-800 rounded-2xl shadow-2xl p-8 w-full max-w-sm border border-slate-700 animate-fade-in">
+      <div class="bg-[#2b2d31] rounded-lg shadow-2xl p-8 w-full max-w-sm border border-[#1e1f22] animate-fade-in">
         <div class="flex items-center justify-center mb-6">
           <div class="w-12 h-12 rounded-xl bg-slate-700 flex items-center justify-center">
             <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
