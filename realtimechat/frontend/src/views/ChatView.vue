@@ -20,6 +20,7 @@ const chatStore = useChatStore()
 const roomName = ref(route.params.room as string)
 const typingUsers = ref<Set<string>>(new Set())
 const chatContainer = ref<HTMLElement | null>(null)
+const showScrollButton = ref(false)
 
 const wsUrl = `${import.meta.env.VITE_WS_URL}/ws/chat/${encodeURIComponent(roomName.value)}/`
 const { connected, connect, disconnect, sendMessage, sendTyping, onMessage } = useWebSocket(wsUrl)
@@ -35,6 +36,16 @@ function scrollToBottom() {
       chatContainer.value.scrollTop = chatContainer.value.scrollHeight
     }
   })
+}
+
+function onScroll() {
+  if (!chatContainer.value) return
+  const { scrollTop, scrollHeight, clientHeight } = chatContainer.value
+  showScrollButton.value = scrollHeight - scrollTop - clientHeight > 80
+}
+
+function scrollDown() {
+  scrollToBottom()
 }
 
 function handleWsMessage(data: WSIncomingMessage) {
@@ -134,11 +145,18 @@ watch(
         <span class="text-[#80848e] mr-1">#</span>{{ roomName }}
       </div>
 
-      <div ref="chatContainer" class="flex-1 overflow-y-auto px-2">
+      <div ref="chatContainer" class="flex-1 overflow-y-auto px-2 relative" @scroll="onScroll">
         <div v-if="chatStore.loading" class="flex items-center justify-center h-full text-[#80848e] text-sm">
           Loading messages...
         </div>
         <MessageList v-else :messages="chatStore.messages" />
+        <button
+          v-if="showScrollButton"
+          @click="scrollDown"
+          class="absolute bottom-4 right-6 bg-[#5865f2] text-white text-xs px-3 py-1.5 rounded-full shadow-lg hover:bg-[#4752c4] transition"
+        >
+          New messages ↓
+        </button>
       </div>
 
       <div v-if="typingUsers.size > 0" class="px-4 py-1 text-[#80848e] text-xs italic">

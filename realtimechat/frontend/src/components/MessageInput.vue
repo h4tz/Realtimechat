@@ -1,17 +1,21 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
 const emit = defineEmits<{
   send: [content: string]
 }>()
 
 const input = ref('')
+const inputEl = ref<HTMLInputElement | null>(null)
+
+onMounted(() => inputEl.value?.focus())
 
 function handleSend() {
   const trimmed = input.value.trim()
   if (!trimmed) return
   emit('send', trimmed)
   input.value = ''
+  inputEl.value?.focus()
 }
 
 function handleKeydown(e: KeyboardEvent) {
@@ -25,6 +29,7 @@ function handleKeydown(e: KeyboardEvent) {
 <template>
   <div class="flex items-center gap-2">
     <input
+      ref="inputEl"
       v-model="input"
       @keydown="handleKeydown"
       type="text"
