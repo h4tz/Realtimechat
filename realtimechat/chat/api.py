@@ -98,6 +98,18 @@ api = NinjaAPI(auth=JWTAuth())
 
 # --- Auth endpoints (no auth required) ---
 
+@api.post("/register/", response=TokenResponse, auth=None)
+def register(request, payload: TokenRequest):
+    username = payload.username.strip()
+    password = payload.password
+    if not username or not password:
+        return api.create_response(request, {"error": "Missing fields"}, status=400)
+    if User.objects.filter(username=username).exists():
+        return api.create_response(request, {"error": "Username taken"}, status=400)
+    user = User.objects.create_user(username=username, password=password)
+    tokens = create_tokens(user)
+    return TokenResponse(**tokens)
+
 @api.post("/token/", response=TokenResponse, auth=None)
 def get_token(request, payload: TokenRequest):
     user = authenticate(username=payload.username, password=payload.password)
