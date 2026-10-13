@@ -58,6 +58,24 @@
 
 ### Failing (54 tests) — BUGS / NEEDS FIX
 
+---
+
+## Phase 5: Discord UI + Registration
+
+### Done
+- [x] Discord dark color theme across views
+- [x] Three-pane channel layout in ChatView
+- [x] Room create/join handlers fixed
+- [x] Registration endpoint + login toggle
+- [x] Password validators disabled (short passwords)
+- [x] Database recreated with latest schema
+
+### Open Bugs / TODO
+- [ ] Frontend tests (Phase 4) not started
+- [ ] Backend auth tests still failing (12/17)
+- [ ] ws_service auth edge tests (2/9)
+- [ ] RoomsView still references old light-theme styles in places
+
 #### BUG-1: `TypeError: 'NinjaAPI' object is not callable` (38 tests)
 - **Affected:** All API endpoint tests in `test_auth.py`, `test_rooms.py`, `test_messages.py`, `test_private.py`
 - **Cause:** `httpx.AsyncClient(ASGITransport(app=api))` — the `api` object is a Django Ninja `NinjaAPI` instance which isn't directly callable by httpx's ASGI transport
