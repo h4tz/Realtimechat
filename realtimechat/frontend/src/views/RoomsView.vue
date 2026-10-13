@@ -29,6 +29,27 @@ function onSearchInput() {
   }, 300)
 }
 
+function handleRoomKeydown(e: KeyboardEvent) {
+  if (e.key === 'Enter') createAndJoin()
+}
+
+async function createAndJoin() {
+  const name = roomInput.value.trim()
+  if (!name) return
+  if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+    showCreateError.value = true
+    return
+  }
+  showCreateError.value = false
+  try {
+    await roomsStore.create(name)
+  } catch {
+    showCreateError.value = true
+    return
+  }
+  joinRoom(name)
+}
+
 function joinRoom(roomName: string) {
   if (!/^[a-zA-Z0-9_-]+$/.test(roomName)) return
   router.push(`/chat/${encodeURIComponent(roomName)}`)
