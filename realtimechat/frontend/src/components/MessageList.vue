@@ -24,14 +24,14 @@ function isOwn(msg: Message): boolean {
       :key="msg.id"
       class="group flex items-start gap-3 px-2 py-0.5 rounded hover:bg-[#2e3035] transition-colors"
     >
-      <div class="mt-0.5 flex-shrink-0 w-9 h-9 rounded-full bg-[#5865f2] flex items-center justify-center text-white text-sm font-semibold">
+      <div class="mt-0.5 flex-shrink-0 w-9 h-9 rounded-full bg-[#eb459e] flex items-center justify-center text-white text-sm font-semibold">
         {{ (msg.user.username?.[0] || '?').toUpperCase() }}
       </div>
       <div class="min-w-0 flex-1">
         <div class="flex items-baseline gap-2">
           <span
             class="text-sm font-medium"
-            :class="isOwn(msg) ? 'text-[#5865f2]' : 'text-white'"
+            :class="isOwn(msg) ? 'text-[#eb459e]' : 'text-white'"
           >
             {{ msg.user.username }}
           </span>

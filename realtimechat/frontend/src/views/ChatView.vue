@@ -112,7 +112,7 @@ watch(
   <div class="h-screen flex bg-[#313338] text-[#dcddde]">
     <!-- Server rail -->
     <aside class="w-[72px] bg-[#1e1f22] flex flex-col items-center py-3 gap-2 flex-shrink-0">
-      <router-link to="/" class="w-12 h-12 rounded-full bg-[#5865f2] flex items-center justify-center text-white font-bold">C</router-link>
+      <router-link to="/" class="w-12 h-12 rounded-full bg-[#eb459e] flex items-center justify-center text-white font-bold">C</router-link>
     </aside>
 
     <!-- Channel sidebar -->
@@ -131,7 +131,7 @@ watch(
         </button>
       </div>
       <div class="h-14 bg-[#232428] px-2 flex items-center gap-2 border-t border-[#1e1f22]">
-        <div class="w-8 h-8 rounded-full bg-[#5865f2] flex items-center justify-center text-xs font-semibold">{{ auth.username?.[0]?.toUpperCase() }}</div>
+        <div class="w-8 h-8 rounded-full bg-[#eb459e] flex items-center justify-center text-xs font-semibold">{{ auth.username?.[0]?.toUpperCase() }}</div>
         <div class="flex-1 min-w-0">
           <div class="text-sm font-medium truncate">{{ auth.username }}</div>
         </div>
@@ -153,7 +153,7 @@ watch(
         <button
           v-if="showScrollButton"
           @click="scrollDown"
-          class="absolute bottom-4 right-6 bg-[#5865f2] text-white text-xs px-3 py-1.5 rounded-full shadow-lg hover:bg-[#4752c4] transition"
+          class="absolute bottom-4 right-6 bg-[#eb459e] text-white text-xs px-3 py-1.5 rounded-full shadow-lg hover:bg-[#d946a6] transition"
         >
           New messages ↓
         </button>
