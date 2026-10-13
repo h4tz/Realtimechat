@@ -74,12 +74,10 @@ async def websocket_chat(websocket: WebSocket, room_name: str):
             async for message in pubsub.listen():
                 if message["type"] == "message":
                     data = json.loads(message["data"])
-                    # Don't echo back to the same user who sent it
-                    if data.get("user") != user["username"]:
-                        try:
-                            await websocket.send_json(data)
-                        except Exception:
-                            break
+                    try:
+                        await websocket.send_json(data)
+                    except Exception:
+                        break
 
         listener_task = asyncio.create_task(redis_listener())
 

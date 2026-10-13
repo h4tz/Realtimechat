@@ -79,11 +79,10 @@ async def websocket_private_chat(websocket: WebSocket, target_username: str):
             async for message in pubsub.listen():
                 if message["type"] == "message":
                     data = json.loads(message["data"])
-                    if data.get("user") != user["username"]:
-                        try:
-                            await websocket.send_json(data)
-                        except Exception:
-                            break
+                    try:
+                        await websocket.send_json(data)
+                    except Exception:
+                        break
 
         listener_task = asyncio.create_task(redis_listener())
 

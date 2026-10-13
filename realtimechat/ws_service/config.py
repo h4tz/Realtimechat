@@ -17,7 +17,7 @@ if not DEBUG and not os.environ.get("JWT_SECRET_KEY"):
 
 # Database
 BASE_DIR = Path(__file__).resolve().parent.parent
-SQLITE_PATH = os.environ.get("SQLITE_PATH", str(BASE_DIR / "realtimechat" / "db.sqlite3"))
+SQLITE_PATH = os.environ.get("SQLITE_PATH", str(BASE_DIR / "db.sqlite3"))
 
 # Redis
 REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379")
