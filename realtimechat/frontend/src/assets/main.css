@@ -7,7 +7,41 @@
     background: linear-gradient(120deg, #1e1f22, #313338, #232428, #313338);
     background-size: 200% 200%;
     animation: gradientShift 18s ease infinite;
+    overflow-x: hidden;
   }
+
+  body::before,
+  body::after {
+    content: "";
+    position: fixed;
+    width: 60vmax;
+    height: 60vmax;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.25;
+    pointer-events: none;
+    z-index: -1;
+    animation: floatBlob 22s ease-in-out infinite;
+  }
+
+  body::before {
+    background: radial-gradient(circle, #5865f2, transparent 70%);
+    top: -20vmax;
+    left: -20vmax;
+  }
+
+  body::after {
+    background: radial-gradient(circle, #eb459e, transparent 70%);
+    bottom: -20vmax;
+    right: -20vmax;
+    animation-delay: -11s;
+  }
+}
+
+@keyframes floatBlob {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(10vmax, -8vmax) scale(1.1); }
+  66% { transform: translate(-8vmax, 10vmax) scale(0.95); }
 }
 
 @keyframes gradientShift {
